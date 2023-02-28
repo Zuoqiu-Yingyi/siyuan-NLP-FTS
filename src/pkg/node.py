@@ -99,7 +99,7 @@ class Node(object):
 
     def __init__(
         self,
-        id: str,  # 节点 id
+        id: str = 'root',  # 节点 id
         parent: t.Optional['Node'] = None,  # 上级节点
         parent_id: t.Optional[str] = None,  # 上级节点 id
         children: t.Set['Node'] = [],  # 下级节点
@@ -142,11 +142,25 @@ class Node(object):
     def children_id(self):
         return self._children_id
 
-    def addChild(self, node: 'Node'):
+    def addChild(
+        self,
+        child: 'Node',  # 下级节点
+        cascade: bool = True,  # 是否级联绑定
+    ) -> None:
         """ 添加下级节点 """
-        self._children.append(node)
-        self._children_id.append(node.id)
+        self._children.append(child)
+        self._children_id.append(child.id)
+        if cascade:
+            child.setParent(self, False)
 
-    def setParent(self, parent: t.Optional['Node'] = None):
+    def setParent(
+        self,
+        parent: t.Optional['Node'] = None,  # 上级节点
+        cascade: bool = True,  # 是否级联绑定
+    ) -> None:
+        """ 设置上级节点 """
         self._parent = parent
-        self._parent_id = parent.id
+        if parent is not None:
+            self._parent_id = parent.id
+            if cascade:
+                parent.addChild(self, False)
