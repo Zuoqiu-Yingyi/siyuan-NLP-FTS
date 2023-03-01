@@ -1,3 +1,5 @@
+# 思源 API
+import typing as t
 import requests
 
 
@@ -93,25 +95,37 @@ class API(object):
 
     def __init__(
         self,
-        token="",
-        host="localhost",
-        port="6806",
-        ssl=False,
-        proxies=None,
+        token: str = '',
+        host: str = 'localhost',
+        port: int = 6806,
+        ssl: bool = False,
+        proxies: t.Optional[t.Dict[str, str]] = None,
     ):
-        self._protocol = ("https" if ssl else "http")
+        self._token = token
         self._host = host
         self._port = port
-        self._token = token
+        self._ssl = ssl
+        self._proxies = proxies
+
+        self._protocol = ('https' if ssl else 'http')
         self._headers = {
-            "Authorization": f"Token {self._token}",
+            'Authorization': f'Token {self._token}',
         }
-        self.socket = f"{self._protocol}://{self._host}:{self._port}"
+        self.socket = f'{self._protocol}://{self._host}:{self._port}'
         self.url = URL(self.socket)
         self._session = requests.Session()
         self._session.headers.update(self._headers)
         if proxies is not None:
             self._session.proxies.update(proxies)
+
+    def __dict__(self) -> t.Dict[str, t.Any]:
+        return {
+            'token': self._token,
+            'host': self._host,
+            'port': self._port,
+            'ssl': self._ssl,
+            'proxies': self._proxies,
+        }
 
     @parse
     def post(self, url, body=None):

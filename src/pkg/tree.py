@@ -10,6 +10,14 @@ class Tree(object):
     """
     节点树
     """
+    @classmethod
+    def fromDict(cls, d: t.Dict[str, t.Any]) -> 'Tree':
+        """ 从字典创建节点 """
+        return cls(
+            root=Node.fromDict(d['root']),
+            client=Client.fromDict(d['client']),
+            notebooks=Notebooks.fromList(d['notebooks'])
+        )
 
     def __init__(
         self,
@@ -25,19 +33,36 @@ class Tree(object):
     def __dict__(self) -> t.Dict[str, t.Any]:
         return {
             'root': self._root.__dict__(),
+            'client': self._client.__dict__(),
             'notebooks': self._notebooks.__dict__(),
         }
+
+    def __repr__(self) -> str:
+        return self._root.__repr__(0)
 
     def id2node(self, id: str) -> t.Optional[Node]:
         return self._map.get(id)
 
+    def buildTree(self, *ids: t.List[str]) -> None:
+        """ 构造树 """
+        self.buildDocTree(*ids)
+        self.buildBlockTree(*ids)
+
     def buildDocTree(self, *ids: t.List[str]) -> None:
-        """ 构建文档树 """
+        """ 构造文档树 """
         for node_id in ids:
             if self._notebooks.isNotebookID(id=node_id):
-                self._buildTreeFromNotebookID(box=node_id)
+                self._buildDocTreeFromNotebookID(box=node_id)
             else:
-                self._buildTreeFromDocID(root_id=node_id)
+                self._buildDocTreeFromDocID(root_id=node_id)
+
+    def buildBlockTree(self, *ids: t.List[str]) -> None:
+        """ 构造块树 """
+        for node_id in ids:
+            if self._notebooks.isNotebookID(id=node_id):
+                self._buildBlockTreeFromNotebookID(box=node_id)
+            else:
+                self._buildBlockTreeFromDocID(root_id=node_id)
 
     def _parseDocPath(
         self,
@@ -103,7 +128,7 @@ class Tree(object):
         node_notebook: Node,
         docs: IDocs,
     ) -> None:
-        """ 从文档列表构建子树 """
+        """ 从文档列表构建下级文档树 """
 
         node_parent = node_default
         for doc in docs:
@@ -125,8 +150,8 @@ class Tree(object):
                 else:
                     node_parent = node_default
 
-    def _buildTreeFromNotebookID(self, box: str) -> None:
-        """ 从笔记本构建树 """
+    def _buildDocTreeFromNotebookID(self, box: str) -> None:
+        """ 从笔记本构建文档树 """
 
         # 将笔记本插入树
         node_notebook = self._addNotebookNode(id=box, name=self._notebooks.id2name(box))
@@ -141,8 +166,8 @@ class Tree(object):
             docs=docs,
         )
 
-    def _buildTreeFromDocID(self, root_id: str) -> None:
-        """ 从文档构建树 """
+    def _buildDocTreeFromDocID(self, root_id: str) -> None:
+        """ 从文档构建文档树 """
         # 查询文档信息
         result: IDocs = self._client.queryDocFromDocID(root_id)
         if len(result) > 0:

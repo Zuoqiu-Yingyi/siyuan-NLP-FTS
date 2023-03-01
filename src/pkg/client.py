@@ -13,13 +13,24 @@ class Client(object):
     思源客户端
     """
 
+    @classmethod
+    def fromDict(cls, d: t.Dict[str, t.Any]) -> 'API':
+        """ 从字典创建节点 """
+        return cls(
+            token=d['token'],
+            host=d['host'],
+            port=d['port'],
+            ssl=d['ssl'],
+            proxies=d['proxies'],
+        )
+
     def __init__(
         self,
-        token="",
-        host="localhost",
-        port="6806",
-        ssl=False,
-        proxies=None,
+        token: str = "",
+        host: str = "localhost",
+        port: int = 6806,
+        ssl: bool = False,
+        proxies: t.Optional[t.Dict[str, str]] = None,
     ):
         self._api = API(
             token=token,
@@ -28,6 +39,9 @@ class Client(object):
             ssl=ssl,
             proxies=proxies,
         )
+
+    def __dict__(self) -> t.Dict[str, t.Any]:
+        return self._api.__dict__()
 
     def getNotebooks(self) -> Notebooks:
         """ 获取所有笔记本 """

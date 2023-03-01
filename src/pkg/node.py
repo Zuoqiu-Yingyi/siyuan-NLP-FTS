@@ -129,6 +129,13 @@ class Node(object):
             'data': self.data.__dict__() if self.data else None,
         }
 
+    def __repr__(self, depth: int = 0) -> str:
+        rows = []
+        rows.append(f'{"| " * depth}- {self.data.content if self.data else self.id}')
+        for child in self.children:
+            rows.append(child.__repr__(depth + 1))
+        return '\n'.join(rows)
+
     @ property
     def id(self):
         return self._id
