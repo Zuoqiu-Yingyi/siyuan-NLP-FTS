@@ -3,27 +3,41 @@ import typing as t
 import requests
 
 
+class Result(object):
+    def __init__(self, result):
+        self.result = result
+        self.code = result.get('code')
+        self.msg = result.get('msg')
+        self.data = result.get('data')
+
+
 class APIError(RuntimeError):
-    def __init__(self, response):
+    def __init__(
+        self,
+        response: requests.Response,
+        result: Result,
+        msg: str,
+    ):
         self.response = response
-
-
-class ResponseBody(object):
-
-    def __init__(self, body):
-        self.body = body
-        self.code = body.get('code')
-        self.msg = body.get('msg')
-        self.data = body.get('data')
+        self.result = result
+        self.msg = msg
 
 
 def parse(request):
-    def wrapper(*args, **kw):
+    def wrapper(*args, **kw) -> Result:
         response = request(*args, **kw)
         if response.status_code == 200:
-            return ResponseBody(response.json())
+            result = Result(response.json())
+            if result.code == 0:
+                return result
+            else:
+                raise APIError(
+                    response=response,
+                    result=result,
+                    msg=result.msg,
+                )
         else:
-            raise APIError(response)
+            raise requests.HTTPError(response)
     return wrapper
 
 
@@ -50,6 +64,7 @@ class URL:
     appendBlock = "/api/block/appendBlock"
     updateBlock = "/api/block/updateBlock"
     deleteBlock = "/api/block/deleteBlock"
+    getBlockBreadcrumb = "/api/block/getBlockBreadcrumb"
 
     setBlockAttrs = "/api/attr/setBlockAttrs"
     getBlockAttrs = "/api/attr/getBlockAttrs"
@@ -82,6 +97,7 @@ class URL:
         self.appendBlock = socket + URL.appendBlock
         self.updateBlock = socket + URL.updateBlock
         self.deleteBlock = socket + URL.deleteBlock
+        self.getBlockBreadcrumb = socket + URL.getBlockBreadcrumb
         self.setBlockAttrs = socket + URL.setBlockAttrs
         self.getBlockAttrs = socket + URL.getBlockAttrs
         self.sql = socket + URL.sql

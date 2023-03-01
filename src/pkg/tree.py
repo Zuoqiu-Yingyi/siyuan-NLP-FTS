@@ -3,7 +3,7 @@ import typing as t
 
 from .node import Node, Data
 from .notebook import Notebooks
-from .client import Client, IDocs
+from .client import Client, IBlocks
 
 
 class Tree(object):
@@ -126,7 +126,7 @@ class Tree(object):
         self,
         node_default: Node,
         node_notebook: Node,
-        docs: IDocs,
+        docs: IBlocks,
     ) -> None:
         """ 从文档列表构建下级文档树 """
 
@@ -157,7 +157,7 @@ class Tree(object):
         node_notebook = self._addNotebookNode(id=box, name=self._notebooks.id2name(box))
 
         # 使用 SQL 查询该笔记本的子文档
-        docs: IDocs = self._client.queryDocsFromBox(box)
+        docs: IBlocks = self._client.queryDocsFromNotebookID(box)
 
         # 通过查询结果构造文档树
         self._buildSubTreeFromDocList(
@@ -169,7 +169,7 @@ class Tree(object):
     def _buildDocTreeFromDocID(self, root_id: str) -> None:
         """ 从文档构建文档树 """
         # 查询文档信息
-        result: IDocs = self._client.queryDocFromDocID(root_id)
+        result: IBlocks = self._client.queryDocFromDocID(root_id)
         if len(result) > 0:
             doc = result[0]
             # 获得笔记本节点
@@ -180,10 +180,10 @@ class Tree(object):
 
             # 构建该文档的上级节点
             node_parent = node_notebook
-            for i in range(1, depth - 2):
-                response = self._client.queryDocFromDocID(paths[i])
-                if len(response.body) > 0:
-                    parent_doc = response.body[0]
+            for i in range(1, depth - 1):
+                result = self._client.queryDocFromDocID(paths[i])
+                if len(result) > 0:
+                    parent_doc = result[0]
                     node = self._addNode(
                         node_parent=node_parent,
                         id=parent_doc['id'],
@@ -200,7 +200,8 @@ class Tree(object):
 
             # 构建该文档的下级节点
             # 使用 SQL 查询该文档的子文档
-            docs: IDocs = self._client.querySubdocsFromDocID(doc['id'])
+            docs: IBlocks = self._client.querySubdocsFromDocID(doc['id'])
+            print(doc, docs)
 
             # 通过查询结果构造文档树
             self._buildSubTreeFromDocList(
@@ -208,3 +209,40 @@ class Tree(object):
                 node_notebook=node_notebook,
                 docs=docs,
             )
+
+    def _buildBlockTreeFromBlockIDs(self, block_ids: t.List[str]) -> None:
+        """ 从块 ID 列表构建块树 """
+        for block_id in block_ids:
+            breadcrumbs = self._client.getBlockBreadcrumb(block_id)
+            if len(breadcrumbs) > 0:
+                parent_id = breadcrumbs[0][0]
+                for i in range(1, len(breadcrumbs)):
+                    block = breadcrumbs[i]
+                    node_parent = self.id2node(parent_id)
+                    if node_parent is not None:
+                        self._addNode(
+                            node_parent=node_parent,
+                            id=block[0],
+                            data=Data(
+                                content=block[1]
+                            ),
+                        )
+                        parent_id = block[0]
+
+    def _buildBlockTreeFromNotebookID(self, box: str) -> None:
+        """ 从笔记本构建块树 """
+
+        # 使用 SQL 查询所有叶子块的块 ID
+        block_ids = self._client.queryBlocksFromNotebookID(box)
+
+        # 构建块树
+        self._buildBlockTreeFromBlockIDs(block_ids)
+
+    def _buildBlockTreeFromDocID(self, root_id: str) -> None:
+        """ 从文档构建块树 """
+
+        # 使用 SQL 查询所有叶子块的块 ID
+        block_ids = self._client.queryBlocksFromDocID(root_id)
+
+        # 构建块树
+        self._buildBlockTreeFromBlockIDs(block_ids)

@@ -4,8 +4,8 @@ import typing as t
 from .api import API
 from .notebook import Notebooks
 
-IDoc = t.Dict[str, str]
-IDocs = t.List[IDoc]
+IBlock = t.Dict[str, str]
+IBlocks = t.List[IBlock]
 
 
 class Client(object):
@@ -46,10 +46,10 @@ class Client(object):
     def getNotebooks(self) -> Notebooks:
         """ 获取所有笔记本 """
         response = self._api.post(url=self._api.url.lsNotebooks)
-        notebooks = Notebooks.fromList(response.body['data']['notebooks'])
+        notebooks = Notebooks.fromList(response.result['data']['notebooks'])
         return notebooks
 
-    def queryDocsFromBox(self, box: str) -> IDocs:
+    def queryDocsFromNotebookID(self, box: str) -> IBlocks:
         """ 通过笔记本 ID 查询笔记本下的所有文档 """
         response = self._api.post(
             url=self._api.url.sql,
@@ -75,10 +75,10 @@ class Client(object):
                 """
             },
         )
-        return response.body['data']
+        return response.result['data']
 
-    def queryDocFromDocID(self, root_id: str) -> IDocs:
-        """ 通过文档 ID 查询文档 """
+    def queryDocFromDocID(self, root_id: str) -> IBlocks:
+        """ 通过文档 ID 查询单个文档 """
         response = self._api.post(
             url=self._api.url.sql,
             body={
@@ -100,9 +100,9 @@ class Client(object):
                 """
             },
         )
-        return response.body['data']
+        return response.result['data']
 
-    def querySubdocsFromDocID(self, id: str) -> IDocs:
+    def querySubdocsFromDocID(self, root_id: str) -> IBlocks:
         """ 通过文档 ID 查询文档下的所有子文档 """
         response = self._api.post(
             url=self._api.url.sql,
@@ -120,7 +120,7 @@ class Client(object):
                     FROM
                         blocks AS b
                     WHERE
-                        b.path LIKE '%/{id}/%'
+                        b.path LIKE '%/{root_id}/%'
                         AND b.type = 'd'
                     ORDER BY
                         LENGTH(b.path),
@@ -128,4 +128,69 @@ class Client(object):
                 """
             },
         )
-        return response.body['data']
+        return response.result['data']
+
+    def queryBlocksFromNotebookID(self, box: str) -> t.List[str]:
+        """通过笔记本 ID 查询文档下的所有块 """
+        response = self._api.post(
+            url=self._api.url.sql,
+            body={
+                'stmt': f"""
+                    SELECT
+                        b.id -- 块 ID
+                    FROM
+                        blocks AS b
+                    WHERE
+                        b.box = '{box}'
+                        AND b.content != ''
+                        AND (
+                            b.type = 'p'
+                            OR b.type = 'h'
+                        )
+                    ORDER BY
+                        LENGTH(b.path),
+                        b.path,
+                        LENGTH(b.subtype),
+                        b.subtype DESC
+                """
+            },
+        )
+        return list(map(lambda block: block['id'], response.result['data']))
+
+    def queryBlocksFromDocID(self, root_id: str) -> t.List[str]:
+        """通过文档 ID 查询文档及其下级文档中的所有块 """
+        response = self._api.post(
+            url=self._api.url.sql,
+            body={
+                'stmt': f"""
+                    SELECT
+                        b.id -- 块 ID
+                    FROM
+                        blocks AS b
+                    WHERE
+                        b.path LIKE '%/{root_id}%'
+                        AND b.content != ''
+                        AND (
+                            b.type = 'p'
+                            OR b.type = 'h'
+                        )
+                    ORDER BY
+                        LENGTH(b.path),
+                        b.path,
+                        LENGTH(b.subtype),
+                        b.subtype DESC
+                """
+            },
+        )
+        return list(map(lambda block: block['id'], response.result['data']))
+    
+    def getBlockBreadcrumb(self, block_id: str) -> t.List[t.Tuple[str, str]]:
+        """ 获取块的面包屑 """
+        response = self._api.post(
+            url=self._api.url.getBlockBreadcrumb,
+            body={
+                'id': block_id,
+                'excludeTypes': [],
+            },
+        )
+        return list(map(lambda block: (block['id'], block['name']), response.result['data']))

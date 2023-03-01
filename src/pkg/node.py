@@ -65,7 +65,7 @@ class Data(object):
             lambda s: not s.isspace() and len(s) > 0,  # 过滤空白字符
             [
                 a.replace('\n', ',').strip()
-                for a in ',123, 456, 789'.replace('\\,', '\n').split(',')
+                for a in alias.replace('\\,', '\n').split(',')
             ]
         ))
 
@@ -81,9 +81,21 @@ class Data(object):
     def keys(self) -> t.Set[str]:
         return self._keys
 
-    def analize(self) -> None:
+    def extractKeys(self, extractor: t.Callable[[t.Set[str]], t.Set[str]]) -> None:
         """ 提取关键词 """
-        pass
+        sentences = set()
+        if len(self.content) > 0 and not self.content.isspace():
+            sentences.add(self.content)
+        if len(self.name) > 0 and not self.content.isspace():
+            sentences.add(self.name)
+        if len(self.memo) > 0 and not self.content.isspace():
+            sentences.update(set(self.memo.split('\n')))
+        if len(self.alias) > 0:
+            sentences.update(self.alias)
+
+        self._keys.clear()
+        if len(sentences) > 0:
+            self._keys.update(extractor(sentences))
 
 
 class Node(object):
