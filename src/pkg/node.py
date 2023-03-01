@@ -7,63 +7,77 @@ class Data(object):
     节点数据
     """
 
+    @classmethod
+    def fromDict(cls, data: t.Dict[str, t.Union[str, t.Set[str]]]) -> 'Node':
+        """ 从字典创建节点 """
+        return cls(
+            content=data['content'],
+            name=data['name'],
+            memo=data['memo'],
+            alias=set(data['alias']),
+            keys=set(data['keys']),
+        )
+
+    @ classmethod
+    def fromQueryResult(cls, result: t.Dict[str, t.Union[str, int]]) -> 'Node':
+        """ 从 SQL 查询结果创建节点 """
+        return cls(
+            content=result['content'],
+            name=result['name'],
+            memo=result['memo'],
+            alias=result['alias'],
+        )
+
     def __init__(
         self,
-        content: str = "",
-        name: str = "",
-        memo: str = "",
-        alias: t.Set[str] = {},
-        keys: t.Set[str] = {},
+        content: str = "",  # 块内容
+        name: str = "",  # 块命名
+        memo: str = "",  # 块备注
+        alias: t.Union[t.Set[str], str] = "",  # 块别名集合
+        keys: t.Optional[t.Set[str]] = None,  # 块关键词集合
     ):
-        self._content = content  # 块内容
-        self._name = name  # 块命名
-        self._memo = memo  # 块备注
-        self._alias = alias  # 块别名集合
-        self._keys = keys  # 块关键词集合
+        self.content = content
+        self.name = name
+        self.memo = memo
+        if isinstance(alias, set):
+            self._alias = alias
+        else:
+            self._alias = set()
+            self.alias = alias
+        self._keys = keys if keys else set()
 
     def __dict__(self) -> dict:
         return {
-            'content': self._content,
-            'name': self._name,
-            'memo': self._memo,
-            'alias': list(self._alias),
-            'keys': list(self._keys),
+            'content': self.content,
+            'name': self.name,
+            'memo': self.memo,
+            'alias': list(self.alias),
+            'keys': list(self.keys),
         }
 
-    @property
-    def content(self) -> str:
-        return self._content
-
-    @content.setter
-    def content(self, content: str) -> None:
-        self._content = content
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        self._name = name
-
-    @property
+    @ property
     def alias(self) -> t.Set[str]:
         return self._alias
 
-    @alias.setter
+    @ alias.setter
     def alias(self, alias: str) -> None:
-        self._alias.clear()
-        self._alias.add(a.replace('\n', ',') for a in alias.replace('\\,', '\n').split(','))
+        self._alias = set(filter(
+            lambda s: not s.isspace() and len(s) > 0,  # 过滤空白字符
+            [
+                a.replace('\n', ',').strip()
+                for a in ',123, 456, 789'.replace('\\,', '\n').split(',')
+            ]
+        ))
 
-    @property
+    @ property
     def memo(self) -> str:
         return self._memo
 
-    @memo.setter
+    @ memo.setter
     def memo(self, memo: str) -> None:
         self._memo = memo
 
-    @property
+    @ property
     def keys(self) -> t.Set[str]:
         return self._keys
 
@@ -77,24 +91,17 @@ class Node(object):
     树节点
     """
 
-    @classmethod
+    @ classmethod
     def fromDict(cls, d: dict) -> 'Node':
         """ 从字典创建节点 """
-        data = d['data']
-        children = d['children']
+        data = d.get('data')
 
         return cls(
-            id=d['id'],
-            parent_id=d['parent_id'],
-            children=[cls.fromDict(child) for child in children],
-            children_id=set(d['children_id']),
-            data=Data(
-                content=data['content'],
-                name=data['name'],
-                memo=data['memo'],
-                alias=set(data['alias']),
-                keys=set(data['keys']),
-            ),
+            id=d.get('id'),
+            parent_id=d.get('parent_id'),
+            children=[cls.fromDict(child) for child in d.get('children', [])],
+            children_id=set(d.get('children_id', [])),
+            data=Data.fromDict(data) if data else None,
         )
 
     def __init__(
@@ -102,43 +109,43 @@ class Node(object):
         id: str = 'root',  # 节点 id
         parent: t.Optional['Node'] = None,  # 上级节点
         parent_id: t.Optional[str] = None,  # 上级节点 id
-        children: t.Set['Node'] = [],  # 下级节点
-        children_id: t.Set[str] = [],  # 下级节点 id
-        data: Data = None,  # 节点数据
+        children: t.Optional[t.Set['Node']] = None,  # 下级节点
+        children_id: t.Optional[t.Set[str]] = None,  # 下级节点 id
+        data: t.Optional[Data] = None,  # 节点数据
     ):
         self._id = id
         self._parent = parent
         self._parent_id = parent_id
-        self._children = children
-        self._children_id = children_id
+        self._children = children if children else set()
+        self._children_id = children_id if children_id else set()
         self.data = data
 
-    def __dict__(self) -> dict:
+    def __dict__(self) -> t.Dict[str, t.Any]:
         return {
             'id': self._id,
             'parent_id': self._parent_id,
-            'children': [n.__dict__() for n in self._children],
+            'children': list(map(lambda child: child.__dict__(), self._children)),
             'children_id': list(self._children_id),
-            'data': self.data.__dict__(),
+            'data': self.data.__dict__() if self.data else None,
         }
 
-    @property
+    @ property
     def id(self):
         return self._id
 
-    @property
+    @ property
     def parent(self):
         return self._parent
 
-    @property
+    @ property
     def parent_id(self):
         return self._parent_id
 
-    @property
+    @ property
     def children(self):
         return self._children
 
-    @property
+    @ property
     def children_id(self):
         return self._children_id
 
@@ -146,21 +153,24 @@ class Node(object):
         self,
         child: 'Node',  # 下级节点
         cascade: bool = True,  # 是否级联绑定
-    ) -> None:
+    ) -> 'Node':
         """ 添加下级节点 """
-        self._children.append(child)
-        self._children_id.append(child.id)
-        if cascade:
-            child.setParent(self, False)
+        if child.id not in self._children_id:  # 避免重复添加
+            self._children_id.add(child.id)
+            self._children.add(child)
+            if cascade:
+                child.setParent(parent=self, cascade=False)
+        return self
 
     def setParent(
         self,
         parent: t.Optional['Node'] = None,  # 上级节点
         cascade: bool = True,  # 是否级联绑定
-    ) -> None:
+    ) -> 'Node':
         """ 设置上级节点 """
         self._parent = parent
         if parent is not None:
             self._parent_id = parent.id
             if cascade:
-                parent.addChild(self, False)
+                parent.addChild(child=self, cascade=False)
+        return self

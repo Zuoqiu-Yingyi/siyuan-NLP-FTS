@@ -8,13 +8,13 @@ class Notebook(object):
     """
 
     @classmethod
-    def fromDict(cls, d: dict) -> 'Notebook':
+    def fromDict(cls, notebook: t.Dict[str, t.Union[str, int]]) -> 'Notebook':
         return cls(
-            id=d['id'],
-            icon=d['icon'],
-            name=d['name'],
-            sort=d['sort'],
-            closed=d['closed'],
+            id=notebook['id'],
+            icon=notebook['icon'],
+            name=notebook['name'],
+            sort=notebook['sort'],
+            closed=notebook['closed'],
         )
 
     def __init__(
@@ -46,15 +46,25 @@ class Notebooks(object):
     笔记本列表
     """
 
+    @classmethod
+    def fromList(cls, notebooks: t.List[t.Dict[str, t.Union[str, int]]]) -> 'Notebooks':
+        """ 从列表创建笔记本列表 """
+        return cls(
+            notebooks=list(map(Notebook.fromDict, notebooks))
+        )
+
     def __init__(self, notebooks: t.List[Notebook] = []):
         notebooks.sort(key=lambda n: n.sort)
         self.notebooks = notebooks
         self._map = {n.id: n for n in notebooks}
 
-    def id2name(self, id: str) -> str:
+    def __dict__(self) -> t.List[dict]:
+        return list(map(lambda n: n.__dict__(), self.notebooks))
+
+    def id2name(self, id: str) -> t.Optional[str]:
         notebook = self._map.get(id)
-        return notebook.name if notebook else ''
-    
+        return notebook.name
+
     def isNotebookID(self, id: str) -> bool:
         if id in self._map:
             return False if self._map[id].closed else True
