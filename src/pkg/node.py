@@ -1,4 +1,5 @@
 # 定义节点
+import json
 import typing as t
 
 
@@ -8,7 +9,7 @@ class Data(object):
     """
 
     @classmethod
-    def fromDict(cls, data: t.Dict[str, t.Union[str, t.Set[str]]]) -> 'Node':
+    def fromDict(cls, data: t.Dict[str, t.Union[str, t.Set[str]]]) -> 'Data':
         """ 从字典创建节点 """
         return cls(
             content=data['content'],
@@ -16,10 +17,11 @@ class Data(object):
             memo=data['memo'],
             alias=set(data['alias']),
             keys=set(data['keys']),
+            keys_with_inherit=set(data['keys_with_inherit']),
         )
 
     @ classmethod
-    def fromQueryResult(cls, result: t.Dict[str, t.Union[str, int]]) -> 'Node':
+    def fromQueryResult(cls, result: t.Dict[str, t.Union[str, int]]) -> 'Data':
         """ 从 SQL 查询结果创建节点 """
         return cls(
             content=result['content'],
@@ -35,6 +37,7 @@ class Data(object):
         memo: str = "",  # 块备注
         alias: t.Union[t.Set[str], str] = "",  # 块别名集合
         keys: t.Optional[t.Set[str]] = None,  # 块关键词集合
+        keys_with_inherit: t.Optional[t.Set[str]] = None,  # 块关键词集合（包含继承）
     ):
         self.content = content
         self.name = name
@@ -45,6 +48,7 @@ class Data(object):
             self._alias = set()
             self.alias = alias
         self._keys = keys if keys else set()
+        self._keys_with_inherit = keys_with_inherit if keys_with_inherit else set()
 
     def __dict__(self) -> dict:
         return {
@@ -53,6 +57,7 @@ class Data(object):
             'memo': self.memo,
             'alias': list(self.alias),
             'keys': list(self.keys),
+            'keys_with_inherit': list(self.keys_with_inherit),
         }
 
     @ property
@@ -81,6 +86,10 @@ class Data(object):
     def keys(self) -> t.Set[str]:
         return self._keys
 
+    @ property
+    def keys_with_inherit(self) -> t.Set[str]:
+        return self._keys_with_inherit
+
     def extractKeys(self, extractor: t.Callable[[t.Set[str]], t.Set[str]]) -> None:
         """ 提取关键词 """
         sentences = set()
@@ -96,6 +105,12 @@ class Data(object):
         self._keys.clear()
         if len(sentences) > 0:
             self._keys.update(extractor(sentences))
+
+    def inheritKeys(self, parent: 'Data') -> None:
+        """ 继承关键词 """
+        self._keys_with_inherit.clear()
+        self._keys_with_inherit.update(self._keys)
+        self._keys_with_inherit.update(parent.keys_with_inherit)
 
 
 class Node(object):
@@ -130,7 +145,10 @@ class Node(object):
         self._parent_id = parent_id
         self._children = children if children else set()
         self._children_id = children_id if children_id else set()
-        self.data = data
+        self.data = data if data else Data()
+
+        for child in self._children:
+            child.setParent(self, False)
 
     def __dict__(self) -> t.Dict[str, t.Any]:
         return {
@@ -147,6 +165,14 @@ class Node(object):
         for child in self.children:
             rows.append(child.__repr__(depth + 1))
         return '\n'.join(rows)
+
+    def __str__(self, indent: int = 2) -> str:
+        return json.dumps(self.__dict__(), ensure_ascii=False, indent=indent)
+
+    def __iter__(self):
+        yield self
+        for child in self.children:
+            yield from child
 
     @ property
     def id(self):
@@ -168,6 +194,10 @@ class Node(object):
     def children_id(self):
         return self._children_id
 
+    @ property
+    def isLeaf(self) -> bool:
+        return len(self._children) == 0
+
     def addChild(
         self,
         child: 'Node',  # 下级节点
@@ -188,6 +218,7 @@ class Node(object):
     ) -> 'Node':
         """ 设置上级节点 """
         self._parent = parent
+        self._parent_id = parent.id
         if parent is not None:
             self._parent_id = parent.id
             if cascade:

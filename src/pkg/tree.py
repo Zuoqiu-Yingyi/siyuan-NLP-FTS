@@ -1,4 +1,5 @@
 # 节点树
+import json
 import typing as t
 
 from .node import Node, Data
@@ -30,6 +31,9 @@ class Tree(object):
         self._notebooks = notebooks  # 笔记本列表
         self._map: t.Dict[str, Node] = dict()  # 节点 ID -> node 映射
 
+        for node in self:
+            self._map[node.id] = node
+
     def __dict__(self) -> t.Dict[str, t.Any]:
         return {
             'root': self._root.__dict__(),
@@ -38,10 +42,33 @@ class Tree(object):
         }
 
     def __repr__(self) -> str:
+        """ 打印树结构 """
         return self._root.__repr__(0)
 
-    def id2node(self, id: str) -> t.Optional[Node]:
-        return self._map.get(id)
+    def __str__(self, indent: int = 2) -> str:
+        """ JSON 序列化结果 """
+        return json.dumps(self.__dict__(), ensure_ascii=False, indent=indent)
+
+    def __iter__(self):
+        """ 深度优先遍历非根节点 """
+        for child in self._root.children:
+            yield from child
+
+    def __len__(self) -> int:
+        """ 非根节点数量 """
+        return len(self._map)
+
+    def id2node(self, node_id: str) -> t.Optional[Node]:
+        return self._map.get(node_id)
+    
+    def getBreadcrumb(self, node_id: str) -> t.List[Node]:
+        """ 获取节点的面包屑 """
+        breadcrumb = []
+        node = self.id2node(node_id)
+        while node.parent:
+            breadcrumb.append(node)
+            node = node.parent
+        return list(reversed(breadcrumb))
 
     def buildTree(self, *ids: t.List[str]) -> None:
         """ 构造树 """
@@ -156,6 +183,9 @@ class Tree(object):
         # 将笔记本插入树
         node_notebook = self._addNotebookNode(id=box, name=self._notebooks.id2name(box))
 
+        # 打印笔记本可读路径
+        print(f"{box}: {node_notebook.data.content}")
+
         # 使用 SQL 查询该笔记本的子文档
         docs: IBlocks = self._client.queryDocsFromNotebookID(box)
 
@@ -174,6 +204,9 @@ class Tree(object):
             doc = result[0]
             # 获得笔记本节点
             node_notebook = self._addNotebookNode(id=doc['box'], name=self._notebooks.id2name(doc['box']))
+
+            # 打印文档可读路径
+            print(f"{root_id}: {node_notebook.data.content}{doc['hpath']}")
 
             # 获得文档路径
             paths, _, depth = self._parseDocPath(node_notebook, doc['path'], doc['hpath'])
@@ -201,7 +234,6 @@ class Tree(object):
             # 构建该文档的下级节点
             # 使用 SQL 查询该文档的子文档
             docs: IBlocks = self._client.querySubdocsFromDocID(doc['id'])
-            print(doc, docs)
 
             # 通过查询结果构造文档树
             self._buildSubTreeFromDocList(
