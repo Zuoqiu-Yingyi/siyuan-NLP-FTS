@@ -7,3 +7,4 @@
 - 优化文档树构建功能 | Optimize document tree building function.
 - 实现关键短语提取功能 | Implement key phrase extraction function.
 - 实现全文搜索功能 | Implement full text search function.
+- 生产环境部署 | Production environment deployment.
