@@ -9,3 +9,4 @@
 - 实现全文搜索功能 | Implement full text search function.
 - 生产环境部署 | Production environment deployment.
 - 实现查询 web 服务 | Implement a query web service.
+- 添加 Python 环境配置文件 | Add a Python environment profile.
