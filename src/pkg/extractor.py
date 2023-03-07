@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 关键短语提取器
 import typing as t
 import hanlp

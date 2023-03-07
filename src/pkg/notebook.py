@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 笔记本
 import typing as t
 

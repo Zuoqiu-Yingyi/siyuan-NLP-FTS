@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 定义节点
 import json
 import typing as t
