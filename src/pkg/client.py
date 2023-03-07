@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 访问思源笔记服务的客户端
 import typing as t
 

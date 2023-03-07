@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 全文搜索 Full Text Search
 from enum import Enum, unique
 import typing as t

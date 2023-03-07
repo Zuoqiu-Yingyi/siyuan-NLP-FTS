@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 思源 API
 import typing as t
 import requests
