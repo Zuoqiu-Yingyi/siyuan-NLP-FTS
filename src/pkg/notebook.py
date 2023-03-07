@@ -32,7 +32,7 @@ class Notebook(object):
         self.sort = sort  # 笔记本排序
         self.closed = closed  # 笔记本是否关闭
 
-    def __dict__(self) -> dict:
+    def __dict__(self) -> t.Dict[str, t.Union[str, int, bool]]:
         return {
             'id': self.id,
             'icon': self.icon,
@@ -59,7 +59,7 @@ class Notebooks(object):
         self.notebooks = notebooks
         self._map = {n.id: n for n in notebooks}
 
-    def __dict__(self) -> t.List[dict]:
+    def __dict__(self) -> t.List[t.Dict[str, t.Union[str, int, bool]]]:
         return list(map(lambda n: n.__dict__(), self.notebooks))
 
     def id2name(self, id: str) -> t.Optional[str]:

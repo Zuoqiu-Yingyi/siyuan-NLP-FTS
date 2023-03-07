@@ -15,7 +15,7 @@ class Client(object):
     """
 
     @classmethod
-    def fromDict(cls, d: t.Dict[str, t.Any]) -> 'API':
+    def fromDict(cls, d: t.Dict[str, t.Any]) -> 'Client':
         """ 从字典创建节点 """
         return cls(
             token=d['token'],

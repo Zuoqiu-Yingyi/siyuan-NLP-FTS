@@ -41,7 +41,7 @@ class Extractor(object):
         self,
         sentences: t.Set[str],  # 待提取关键短语的多个语句
         tags: t.Set[str],  # 句子成分
-    ):
+    ) -> t.Set[str]:
         results_con = self.parse(sentences)
         key_phrases = self.filter(results_con, tags)
         return key_phrases

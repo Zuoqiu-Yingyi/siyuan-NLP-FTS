@@ -18,13 +18,13 @@ class Server(object):
         path_tree_file_with_full_keys: str,  # 带有完整关键词的树文件路径
         host: str = 'localhost',  # 服务器主机
         port: int = 5000,  # 服务器端口
-        defug: bool = True,  # 调试模式
+        debug: bool = True,  # 调试模式
     ):
         self._path_index = path_index
         self._path_tree_file_with_full_keys = path_tree_file_with_full_keys
         self._host = host
         self._port = port
-        self._defug = defug
+        self._debug = debug
         self._app = Flask(__name__)
         self.init()
 
@@ -90,5 +90,5 @@ class Server(object):
         self._app.run(
             host=self._host,
             port=self._port,
-            debug=self._defug,
+            debug=self._debug,
         )

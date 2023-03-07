@@ -22,7 +22,7 @@ class Data(object):
         )
 
     @ classmethod
-    def fromQueryResult(cls, result: t.Dict[str, t.Union[str, int]]) -> 'Data':
+    def fromQueryResult(cls, result: t.Dict[str, str]) -> 'Data':
         """ 从 SQL 查询结果创建节点 """
         return cls(
             content=result['content'],
@@ -51,7 +51,7 @@ class Data(object):
         self._keys = keys if keys else set()
         self._keys_with_inherit = keys_with_inherit if keys_with_inherit else set()
 
-    def __dict__(self) -> dict:
+    def __dict__(self) -> t.Dict[str, t.Union[str, t.List[str]]]:
         return {
             'content': self.content,
             'name': self.name,

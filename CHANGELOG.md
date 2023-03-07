@@ -10,3 +10,4 @@
 - 生产环境部署 | Production environment deployment.
 - 实现查询 web 服务 | Implement a query web service.
 - 添加 Python 环境配置文件 | Add a Python environment profile.
+- 调整 typing 类型标注 | Adjust the typing type annotation.
